@@ -27,7 +27,7 @@ import {
  * -------------------------------------------------------------
  */
 
-const API_BASE = import.meta?.env?.VITE_API_URL || "http://localhost:4000";
+const API_BASE = import.meta?.env?.VITE_API_URL || "https://everystage-backend.onrender.com";
 
 const STAGES = [
   { key: "student", label: "STUDENT", sub: "Enrolled & verified", icon: GraduationCap },
