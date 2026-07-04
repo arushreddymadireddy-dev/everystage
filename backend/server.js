@@ -18,15 +18,26 @@ const app = express();
 connectDB();
 
 app.use(helmet());
+
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim());
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true, // required so the browser sends/receives the refresh-token cookie
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
   })
 );
+
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
-app.use(mongoSanitize()); // strips $ and . from req.body/query/params to block NoSQL injection
+app.use(mongoSanitize());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'everystage-auth-api' }));
 app.use('/api/auth', authRoutes);
