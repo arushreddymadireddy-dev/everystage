@@ -1,43 +1,93 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LoginPage from './LoginPage.jsx';
 import SignupPage from './SignupPage.jsx';
+import Dashboard from './Dashboard.jsx';
+
+const API_BASE = import.meta?.env?.VITE_API_URL || 'https://everystage-backend.onrender.com';
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [view, setView] = useState('login'); // 'login' | 'signup'
+  const [oauthChecking, setOauthChecking] = useState(true);
+  const [oauthError, setOauthError] = useState('');
+
+  // On first load, check whether we just got redirected back from Google/LinkedIn
+  // with a token attached to the URL (?oauth_token=...).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('oauth_token');
+    const error = params.get('oauth_error');
+
+    if (token) {
+      fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user) {
+            setUser(data.user);
+            setAccessToken(token);
+          }
+        })
+        .finally(() => {
+          window.history.replaceState({}, '', window.location.pathname); // clean the token out of the URL
+          setOauthChecking(false);
+        });
+    } else if (error) {
+      setOauthError('That sign-in attempt didn\'t go through. Please try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+      setOauthChecking(false);
+    } else {
+      setOauthChecking(false);
+    }
+  }, []);
+
+  if (oauthChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F4EC] text-[#0F1830]">
+        <p className="font-mono text-sm text-[#5B6478]">Signing you in...</p>
+      </div>
+    );
+  }
 
   if (user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F4EC] text-[#0F1830]">
-        <div className="text-center">
-          <h1 className="font-serif text-3xl font-semibold">Signed in as {user.fullName}</h1>
-          <p className="mt-2 text-[#5B6478]">
-            Role: {user.role} · {user.email}
-          </p>
-          <button
-            onClick={() => setUser(null)}
-            className="mt-6 rounded-full bg-[#0F1830] px-5 py-2.5 text-sm font-semibold text-white"
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
+      <Dashboard
+        user={user}
+        token={accessToken}
+        onSignOut={() => {
+          setUser(null);
+          setAccessToken(null);
+        }}
+      />
     );
   }
 
   if (view === 'signup') {
     return (
       <SignupPage
-        onAuthenticated={(u) => setUser(u)}
+        onAuthenticated={(u, t) => {
+          setUser(u);
+          setAccessToken(t);
+        }}
         onSwitchToLogin={() => setView('login')}
       />
     );
   }
 
   return (
-    <LoginPage
-      onAuthenticated={(u) => setUser(u)}
-      onSwitchToSignup={() => setView('signup')}
-    />
+    <>
+      {oauthError && (
+        <div className="bg-[#C4443A] px-4 py-2 text-center text-sm text-white">{oauthError}</div>
+      )}
+      <LoginPage
+        onAuthenticated={(u, t) => {
+          setUser(u);
+          setAccessToken(t);
+        }}
+        onSwitchToSignup={() => setView('signup')}
+      />
+    </>
   );
 }
