@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -7,6 +7,10 @@ const mongoSanitize = require('express-mongo-sanitize');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const educationRoutes = require('./routes/educationRoutes');
+const skillRoutes = require('./routes/skillRoutes');
+const careerRoutes = require('./routes/careerRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -26,6 +30,10 @@ app.use(mongoSanitize()); // strips $ and . from req.body/query/params to block 
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'everystage-auth-api' }));
 app.use('/api/auth', authRoutes);
+app.use('/api/education', educationRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/career', careerRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
